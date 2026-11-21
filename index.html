@@ -5,14 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lucky Draw Live</title>
 
-<!-- Firebase SDK (Untuk sambungan Live) -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
 <style>
-    * {
-        box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
         margin: 0;
@@ -23,7 +21,7 @@
         overflow: hidden;
     }
 
-    /* SKRIN PILIHAN PERANAN (ADMIN / PESERTA) */
+    /* SKRIN PILIHAN PERANAN */
     #roleModal {
         position: fixed;
         inset: 0;
@@ -48,12 +46,7 @@
         width: 100%;
     }
 
-    .role-box h2 {
-        margin-top: 0;
-        margin-bottom: 20px;
-        font-size: 26px;
-        letter-spacing: 1px;
-    }
+    .role-box h2 { margin-top: 0; margin-bottom: 20px; font-size: 26px; letter-spacing: 1px; }
 
     .role-btn {
         width: 100%;
@@ -66,26 +59,11 @@
         cursor: pointer;
         transition: transform 0.15s;
     }
+    .role-btn:active { transform: scale(0.97); }
+    .btn-peserta { background: #28a745; color: white; }
+    .btn-admin { background: #ffc107; color: black; }
 
-    .role-btn:active {
-        transform: scale(0.97);
-    }
-
-    .btn-peserta {
-        background: #28a745;
-        color: white;
-    }
-
-    .btn-admin {
-        background: #ffc107;
-        color: black;
-    }
-
-    #adminLoginSection {
-        display: none;
-        margin-top: 15px;
-    }
-
+    #adminLoginSection { display: none; margin-top: 15px; }
     #adminPassInput {
         width: 100%;
         padding: 12px;
@@ -96,7 +74,6 @@
         margin-bottom: 10px;
     }
 
-    /* LENCANA STATUS DI PENJURU BAWAH */
     #modeBadge {
         position: fixed;
         bottom: 15px;
@@ -122,6 +99,7 @@
         filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.28));
     }
 
+    /* PANEL KAWALAN ADMIN */
     #listContainer {
         position: absolute;
         top: 20px;
@@ -131,30 +109,118 @@
         display: none;
     }
 
-    textarea {
-        width: 230px;
-        height: 200px;
+    #adminDrawer {
+        background: rgba(15, 23, 42, 0.90);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 12px;
+        border-radius: 14px;
+        width: 265px;
+        text-align: left;
+        color: white;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+
+    .preset-box {
+        background: rgba(255, 255, 255, 0.08);
         padding: 10px;
-        font-size: 17px;
         border-radius: 10px;
+        margin-bottom: 10px;
+        border: 1px solid rgba(255, 215, 0, 0.25);
+    }
+
+    .preset-title {
+        font-size: 12px;
+        font-weight: bold;
+        color: #ffd700;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .preset-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 6px;
+        align-items: center;
+    }
+
+    .preset-row label {
+        font-size: 12px;
+        color: #cbd5e1;
+        flex: 1;
+    }
+
+    .preset-box select, .preset-box input {
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: white;
+        padding: 6px 8px;
+        border-radius: 6px;
+        font-size: 13px;
+        outline: none;
+    }
+
+    .preset-box select { width: 135px; }
+    .preset-box input[type="number"] { width: 50%; text-align: center; }
+
+    .btn-generate {
+        width: 100%;
+        padding: 8px;
+        background: #ffd700;
+        color: #000;
+        font-weight: bold;
+        font-size: 13px;
         border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-top: 2px;
+    }
+    .btn-generate:hover { background: #f59e0b; }
+
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #cbd5e1;
+        margin-bottom: 5px;
+    }
+
+    #countBadge {
+        background: #28a745;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-weight: bold;
+        font-size: 11px;
+    }
+
+    textarea {
+        width: 100%;
+        height: 150px;
+        padding: 10px;
+        font-size: 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.2);
+        background: rgba(255,255,255,0.95);
+        color: #000;
         resize: none;
         outline: none;
     }
 
     #toggleBtn {
         margin-top: 6px;
-        background: rgba(0, 0, 0, 0.6);
-        padding: 8px 15px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 6px 14px;
         border-radius: 8px;
-        border: none;
+        border: 1px solid rgba(255,255,255,0.2);
         cursor: pointer;
         color: white;
-        font-size: 22px;
+        font-size: 20px;
         font-weight: bold;
     }
 
-    /* BUTANG KAWALAN SENTUH UNTUK ADMIN */
     #adminControls {
         margin-top: 8px;
         display: flex;
@@ -163,13 +229,14 @@
     }
 
     .spin-trigger {
-        padding: 8px 12px;
+        padding: 9px 14px;
         font-size: 13px;
         font-weight: bold;
         border: none;
-        border-radius: 6px;
+        border-radius: 8px;
         cursor: pointer;
         color: white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
     #resultWrapper {
@@ -190,17 +257,13 @@
         font-weight: 900;
         letter-spacing: 8px;
         color: #ffd700;
-        text-shadow:
-            0 3px 0 #7a4b00,
-            0 0 10px rgba(255, 215, 0, 0.8),
-            0 0 25px rgba(255, 215, 0, 0.8);
+        text-shadow: 0 3px 0 #7a4b00, 0 0 10px rgba(255, 215, 0, 0.8), 0 0 25px rgba(255, 215, 0, 0.8);
         opacity: 0;
         transform: scale(0.5);
     }
 
     #grandLabel.show {
-        animation: grandLabelIn 0.7s ease forwards,
-                   grandLabelPulse 0.8s ease-in-out 0.7s infinite alternate;
+        animation: grandLabelIn 0.7s ease forwards, grandLabelPulse 0.8s ease-in-out 0.7s infinite alternate;
     }
 
     #result {
@@ -213,37 +276,26 @@
         transform-origin: center;
     }
 
-    #result.normalRolling {
-        animation: normalRoll 0.13s linear infinite;
-    }
+    #result.normalRolling { animation: normalRoll 0.13s linear infinite; }
 
     #result.grandRolling {
         color: #ffd700;
         -webkit-text-stroke: 4px black;
-        text-shadow:
-            0 5px 0 #7a4b00,
-            0 0 18px rgba(255, 215, 0, 0.95),
-            0 0 45px rgba(255, 140, 0, 0.9);
+        text-shadow: 0 5px 0 #7a4b00, 0 0 18px rgba(255, 215, 0, 0.95), 0 0 45px rgba(255, 140, 0, 0.9);
         animation: grandRoll 0.18s ease-in-out infinite;
     }
 
     #result.grandReveal {
         color: #ffd700;
         -webkit-text-stroke: 4px black;
-        text-shadow:
-            0 5px 0 #7a4b00,
-            0 0 18px rgba(255, 215, 0, 0.95),
-            0 0 45px rgba(255, 140, 0, 0.9);
+        text-shadow: 0 5px 0 #7a4b00, 0 0 18px rgba(255, 215, 0, 0.95), 0 0 45px rgba(255, 140, 0, 0.9);
         animation: revealPulse 0.55s ease;
     }
 
     #result.grandWinner {
         color: #ffd700;
         -webkit-text-stroke: 4px black;
-        text-shadow:
-            0 5px 0 #7a4b00,
-            0 0 20px rgba(255, 215, 0, 1),
-            0 0 55px rgba(255, 100, 0, 0.95);
+        text-shadow: 0 5px 0 #7a4b00, 0 0 20px rgba(255, 215, 0, 1), 0 0 55px rgba(255, 100, 0, 0.95);
         animation: winnerPop 1s cubic-bezier(.2, .9, .25, 1.4);
     }
 
@@ -253,20 +305,11 @@
         pointer-events: none;
         z-index: 5;
         opacity: 0;
-        background:
-            radial-gradient(circle at center,
-                rgba(255, 225, 80, 0.30) 0%,
-                rgba(255, 115, 0, 0.14) 35%,
-                rgba(0, 0, 0, 0.68) 100%);
+        background: radial-gradient(circle at center, rgba(255, 225, 80, 0.30) 0%, rgba(255, 115, 0, 0.14) 35%, rgba(0, 0, 0, 0.68) 100%);
     }
 
-    #grandOverlay.active {
-        animation: overlayPulse 0.75s ease-in-out infinite alternate;
-    }
-
-    #grandOverlay.flash {
-        animation: finalFlash 0.85s ease-out;
-    }
+    #grandOverlay.active { animation: overlayPulse 0.75s ease-in-out infinite alternate; }
+    #grandOverlay.flash { animation: finalFlash 0.85s ease-out; }
 
     #fireworksCanvas {
         position: fixed;
@@ -285,47 +328,39 @@
         75%  { transform: translateY(4px) rotate(-0.6deg) scale(1.01); }
         100% { transform: translateY(0px) rotate(0deg) scale(1); }
     }
-
     @keyframes normalRoll {
         0%   { transform: translateY(-3px) scale(0.99); filter: blur(0); }
         50%  { transform: translateY(3px) scale(1.01); filter: blur(1px); }
         100% { transform: translateY(-3px) scale(0.99); filter: blur(0); }
     }
-
     @keyframes grandRoll {
         0%   { transform: scale(0.92) rotate(-1deg); filter: blur(0); }
         50%  { transform: scale(1.09) rotate(1deg); filter: blur(2px); }
         100% { transform: scale(0.92) rotate(-1deg); filter: blur(0); }
     }
-
     @keyframes revealPulse {
         0%   { transform: scale(0.84); opacity: 0.45; }
         55%  { transform: scale(1.12); opacity: 1; }
         100% { transform: scale(1); opacity: 1; }
     }
-
     @keyframes winnerPop {
         0%   { transform: scale(0.35); opacity: 0; }
         55%  { transform: scale(1.22); opacity: 1; }
         75%  { transform: scale(0.94); }
         100% { transform: scale(1); }
     }
-
     @keyframes grandLabelIn {
         from { opacity: 0; transform: scale(0.5) translateY(20px); }
         to   { opacity: 1; transform: scale(1) translateY(0); }
     }
-
     @keyframes grandLabelPulse {
         from { filter: brightness(0.9); transform: scale(1); }
         to   { filter: brightness(1.35); transform: scale(1.06); }
     }
-
     @keyframes overlayPulse {
         from { opacity: 0.35; }
         to   { opacity: 0.85; }
     }
-
     @keyframes finalFlash {
         0%   { opacity: 0.35; background: white; }
         30%  { opacity: 0.95; background: white; }
@@ -333,10 +368,8 @@
     }
 </style>
 </head>
-
 <body>
 
-<!-- MODAL PILIHAN PERANAN -->
 <div id="roleModal">
     <div class="role-box">
         <h2>LUCKY DRAW LIVE</h2>
@@ -358,9 +391,36 @@
 <canvas id="fireworksCanvas"></canvas>
 
 <div id="listContainer">
-    <textarea id="numberInput" placeholder="Enter numbers&#10;one per line"></textarea>
+    <div id="adminDrawer">
+        <div class="preset-box">
+            <div class="preset-title">⚡ Penjana Nombor Auto</div>
+            <div class="preset-row">
+                <label for="digitSelect">Bil. Angka:</label>
+                <select id="digitSelect">
+                    <option value="0">Tanpa 0 (1, 2...)</option>
+                    <option value="2">2 Angka (01)</option>
+                    <option value="3">3 Angka (001)</option>
+                    <option value="4" selected>4 Angka (0001)</option>
+                    <option value="5">5 Angka (00001)</option>
+                </select>
+            </div>
+            <div class="preset-row">
+                <input type="number" id="startNumInput" placeholder="Mula (1)" value="1" min="0">
+                <span style="color:#94a3b8; font-size:12px;">hingga</span>
+                <input type="number" id="endNumInput" placeholder="Akhir (1700)" value="1700" min="1">
+            </div>
+            <button type="button" class="btn-generate" onclick="generatePresetNumbers()">Jana Senarai Nombor</button>
+        </div>
+
+        <div class="list-header">
+            <span>Senarai Cabutan:</span>
+            <span id="countBadge">0 baki</span>
+        </div>
+        <textarea id="numberInput" placeholder="Masukkan nombor/nama&#10;satu setiap baris"></textarea>
+    </div>
+
     <div>
-        <button id="toggleBtn" onclick="toggleList()">—</button>
+        <button id="toggleBtn" onclick="toggleList()" title="Sembunyi/Papar Senarai">—</button>
     </div>
     <div id="adminControls">
         <button class="spin-trigger" style="background:#007bff;" onclick="startNormalDraw()">Spin (Space)</button>
@@ -378,9 +438,6 @@
 <audio id="winSound" src="sound/win.mp3" preload="auto"></audio>
 
 <script>
-    /* ==============================================================
-       1. TETAPAN FIREBASE ANDA (SUDAH DIMASUKKAN)
-       ============================================================== */
     const firebaseConfig = {
         databaseURL: "https://mg-luckydraw-default-rtdb.asia-southeast1.firebasedatabase.app"
     };
@@ -389,11 +446,9 @@
     const db = firebase.database();
     const liveRef = db.ref("luckyDrawLive");
 
-    /* ==============================================================
-       2. KAWALAN PERANAN (ADMIN VS PESERTA)
-       ============================================================== */
     let userRole = null;
     const ADMIN_PASSWORD = "75944624";
+    const STORAGE_KEY = "mgLuckyDrawListV1";
 
     function showAdminLogin() {
         document.getElementById("adminLoginSection").style.display = "block";
@@ -423,6 +478,12 @@
             const badge = document.getElementById("modeBadge");
             badge.style.display = "block";
             badge.textContent = "🟢 Mod Admin (Kawalan Aktif)";
+
+            const savedList = localStorage.getItem(STORAGE_KEY);
+            if (savedList !== null) {
+                document.getElementById("numberInput").value = savedList;
+            }
+            updateCountBadge();
         } else {
             document.getElementById("passError").style.display = "block";
         }
@@ -447,9 +508,58 @@
         });
     }
 
-    /* ==============================================================
-       3. PEMBOLEHUBAH & FUNGSI ASAL SISTEM
-       ============================================================== */
+    function generatePresetNumbers() {
+        const digits = parseInt(document.getElementById("digitSelect").value, 10);
+        const start = parseInt(document.getElementById("startNumInput").value, 10);
+        const end = parseInt(document.getElementById("endNumInput").value, 10);
+
+        if (isNaN(start) || isNaN(end) || start > end) {
+            alert("Sila pastikan Nombor Mula lebih kecil atau sama dengan Nombor Akhir.");
+            return;
+        }
+
+        if (end - start > 50000) {
+            alert("Maksimum 50,000 nombor dibenarkan dalam satu masa.");
+            return;
+        }
+
+        const area = document.getElementById("numberInput");
+        if (area.value.trim() !== "" && !confirm("Gantikan senarai sedia ada dengan nombor baharu ini?")) {
+            return;
+        }
+
+        const generated = [];
+        for (let i = start; i <= end; i++) {
+            const numStr = digits > 0 ? String(i).padStart(digits, "0") : String(i);
+            generated.push(numStr);
+        }
+
+        area.value = generated.join("\n");
+        saveListToStorage();
+        updateCountBadge();
+    }
+
+    function saveListToStorage() {
+        const area = document.getElementById("numberInput");
+        if (!area) return;
+        try {
+            localStorage.setItem(STORAGE_KEY, area.value);
+        } catch (e) {}
+    }
+
+    function updateCountBadge() {
+        const area = document.getElementById("numberInput");
+        const badge = document.getElementById("countBadge");
+        if (!area || !badge) return;
+        const count = area.value.split("\n").map(n => n.trim()).filter(n => n !== "").length;
+        badge.textContent = `${count} baki`;
+    }
+
+    document.getElementById("numberInput").addEventListener("input", () => {
+        saveListToStorage();
+        updateCountBadge();
+    });
+
     let numbers = [];
     let listVisible = true;
     let rollingInterval = null;
@@ -471,16 +581,16 @@
     }
 
     function toggleList(forceHide = false) {
-        const area = document.getElementById("numberInput");
+        const drawer = document.getElementById("adminDrawer");
         const btn = document.getElementById("toggleBtn");
-        if (!area || !btn) return;
+        if (!drawer || !btn) return;
 
         if (forceHide || listVisible) {
-            area.style.display = "none";
+            drawer.style.display = "none";
             btn.innerHTML = "+";
             listVisible = false;
         } else {
-            area.style.display = "block";
+            drawer.style.display = "block";
             btn.innerHTML = "—";
             listVisible = true;
         }
@@ -516,9 +626,15 @@
         }
     }
 
-    /* =========================
-       NORMAL DRAW (ADMIN)
-       ========================= */
+    function getSamplePool(arr, max = 60) {
+        if (arr.length <= max) return [...arr];
+        const sample = [];
+        for (let i = 0; i < max; i++) {
+            sample.push(arr[Math.floor(Math.random() * arr.length)]);
+        }
+        return sample;
+    }
+
     function startNormalDraw() {
         if (userRole !== "admin" || isDrawing) return;
 
@@ -538,7 +654,7 @@
 
         broadcastState({
             state: "normal_rolling",
-            pool: numbers.slice(0, 50)
+            pool: getSamplePool(numbers)
         });
 
         rollingInterval = setInterval(() => {
@@ -560,6 +676,8 @@
         result.className = "";
         result.textContent = picked;
         document.getElementById("numberInput").value = numbers.join("\n");
+        saveListToStorage();
+        updateCountBadge();
 
         broadcastState({
             state: "normal_win",
@@ -570,9 +688,6 @@
         isDrawing = false;
     }
 
-    /* =========================
-       GRAND PRIZE (ADMIN)
-       ========================= */
     function startGrandDraw() {
         if (userRole !== "admin" || isDrawing) return;
 
@@ -595,7 +710,7 @@
 
         broadcastState({
             state: "grand_rolling",
-            pool: numbers.slice(0, 50)
+            pool: getSamplePool(numbers)
         });
 
         let rollSpeed = 45;
@@ -634,6 +749,8 @@
 
         numbers.splice(index, 1);
         document.getElementById("numberInput").value = numbers.join("\n");
+        saveListToStorage();
+        updateCountBadge();
 
         result.className = "";
         result.classList.add("grandReveal");
@@ -706,9 +823,6 @@
         }, 1200);
     }
 
-    /* ==============================================================
-       4. PENDENGAR LIVE UNTUK SKRIN PESERTA
-       ============================================================== */
     let lastTimestamp = 0;
 
     function listenToLiveUpdates() {
@@ -774,9 +888,10 @@
         });
     }
 
-    /* KAWALAN PAPAN KEKUNCI (ADMIN SAHAJA) */
     document.addEventListener("keydown", function(e) {
         if (userRole !== "admin") return;
+        const tag = document.activeElement && document.activeElement.tagName;
+        if (["INPUT", "TEXTAREA", "SELECT"].includes(tag)) return;
         if (e.repeat) return;
 
         if (e.code === "Space") {
@@ -790,9 +905,6 @@
         }
     });
 
-    /* =========================
-       FIREWORKS
-       ========================= */
     function startFireworks(isGrand = false) {
         const canvas = document.getElementById("fireworksCanvas");
         const ctx = canvas.getContext("2d");
@@ -890,6 +1002,5 @@
         canvas.height = window.innerHeight;
     });
 </script>
-
 </body>
 </html>
