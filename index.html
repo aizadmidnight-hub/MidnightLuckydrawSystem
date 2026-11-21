@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ms">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lucky Draw</title>
+<title>Lucky Draw Live</title>
+
+<!-- Firebase SDK (Untuk sambungan Live) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
 <style>
     * {
@@ -19,6 +23,92 @@
         overflow: hidden;
     }
 
+    /* SKRIN PILIHAN PERANAN (ADMIN / PESERTA) */
+    #roleModal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(6px);
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .role-box {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        padding: 30px;
+        border-radius: 16px;
+        max-width: 400px;
+        width: 100%;
+    }
+
+    .role-box h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 26px;
+        letter-spacing: 1px;
+    }
+
+    .role-btn {
+        width: 100%;
+        padding: 15px;
+        margin: 8px 0;
+        font-size: 18px;
+        font-weight: bold;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: transform 0.15s;
+    }
+
+    .role-btn:active {
+        transform: scale(0.97);
+    }
+
+    .btn-peserta {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-admin {
+        background: #ffc107;
+        color: black;
+    }
+
+    #adminLoginSection {
+        display: none;
+        margin-top: 15px;
+    }
+
+    #adminPassInput {
+        width: 100%;
+        padding: 12px;
+        font-size: 18px;
+        border-radius: 8px;
+        border: none;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    /* LENCANA STATUS DI PENJURU BAWAH */
+    #modeBadge {
+        position: fixed;
+        bottom: 15px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.65);
+        color: #fff;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        z-index: 40;
+        display: none;
+    }
 
     #topLeftLogo {
         position: absolute;
@@ -38,6 +128,7 @@
         right: 20px;
         text-align: right;
         z-index: 20;
+        display: none;
     }
 
     textarea {
@@ -63,6 +154,24 @@
         font-weight: bold;
     }
 
+    /* BUTANG KAWALAN SENTUH UNTUK ADMIN */
+    #adminControls {
+        margin-top: 8px;
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+    }
+
+    .spin-trigger {
+        padding: 8px 12px;
+        font-size: 13px;
+        font-weight: bold;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        color: white;
+    }
+
     #resultWrapper {
         position: absolute;
         top: calc(45.5% + 60px);
@@ -77,7 +186,7 @@
     #grandLabel {
         min-height: 52px;
         margin-bottom: 8px;
-        font-size: 42px;
+        font-size: clamp(24px, 5vw, 42px);
         font-weight: 900;
         letter-spacing: 8px;
         color: #ffd700;
@@ -96,7 +205,7 @@
 
     #result {
         display: inline-block;
-        font-size: clamp(90px, 15vw, 200px);
+        font-size: clamp(70px, 15vw, 200px);
         line-height: 1;
         font-weight: bold;
         color: black;
@@ -227,6 +336,22 @@
 
 <body>
 
+<!-- MODAL PILIHAN PERANAN -->
+<div id="roleModal">
+    <div class="role-box">
+        <h2>LUCKY DRAW LIVE</h2>
+        <button class="role-btn btn-peserta" onclick="enterAsParticipant()">👀 Masuk Sebagai Peserta (Live)</button>
+        <button class="role-btn btn-admin" onclick="showAdminLogin()">🔑 Masuk Sebagai Admin</button>
+
+        <div id="adminLoginSection">
+            <input type="password" id="adminPassInput" placeholder="Masukkan Kata Laluan Admin">
+            <button class="role-btn btn-peserta" onclick="verifyAdmin()">Sahkan & Masuk</button>
+            <div id="passError" style="color: #ff6b6b; font-size: 14px; margin-top: 5px; display: none;">Kata laluan salah!</div>
+        </div>
+    </div>
+</div>
+
+<div id="modeBadge"></div>
 <img id="topLeftLogo" src="logo/mg.png" alt="Logo">
 
 <div id="grandOverlay"></div>
@@ -234,7 +359,13 @@
 
 <div id="listContainer">
     <textarea id="numberInput" placeholder="Enter numbers&#10;one per line"></textarea>
-    <button id="toggleBtn" onclick="toggleList()">—</button>
+    <div>
+        <button id="toggleBtn" onclick="toggleList()">—</button>
+    </div>
+    <div id="adminControls">
+        <button class="spin-trigger" style="background:#007bff;" onclick="startNormalDraw()">Spin (Space)</button>
+        <button class="spin-trigger" style="background:#d97706;" onclick="startGrandDraw()">Grand (Shift)</button>
+    </div>
 </div>
 
 <div id="resultWrapper">
@@ -247,12 +378,82 @@
 <audio id="winSound" src="sound/win.mp3" preload="auto"></audio>
 
 <script>
+    /* ==============================================================
+       1. TETAPAN FIREBASE ANDA (SUDAH DIMASUKKAN)
+       ============================================================== */
+    const firebaseConfig = {
+        databaseURL: "https://mg-luckydraw-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const liveRef = db.ref("luckyDrawLive");
+
+    /* ==============================================================
+       2. KAWALAN PERANAN (ADMIN VS PESERTA)
+       ============================================================== */
+    let userRole = null;
+    const ADMIN_PASSWORD = "75944624";
+
+    function showAdminLogin() {
+        document.getElementById("adminLoginSection").style.display = "block";
+        document.getElementById("adminPassInput").focus();
+    }
+
+    document.getElementById("adminPassInput").addEventListener("keyup", function(e) {
+        if (e.key === "Enter") verifyAdmin();
+    });
+
+    function unlockAudio() {
+        [spinSound, grandPrizeSound, winSound].forEach(audio => {
+            audio.play().then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+            }).catch(() => {});
+        });
+    }
+
+    function verifyAdmin() {
+        const input = document.getElementById("adminPassInput").value;
+        if (input === ADMIN_PASSWORD) {
+            userRole = "admin";
+            unlockAudio();
+            document.getElementById("roleModal").style.display = "none";
+            document.getElementById("listContainer").style.display = "block";
+            const badge = document.getElementById("modeBadge");
+            badge.style.display = "block";
+            badge.textContent = "🟢 Mod Admin (Kawalan Aktif)";
+        } else {
+            document.getElementById("passError").style.display = "block";
+        }
+    }
+
+    function enterAsParticipant() {
+        userRole = "participant";
+        unlockAudio();
+        document.getElementById("roleModal").style.display = "none";
+        document.getElementById("listContainer").remove();
+        const badge = document.getElementById("modeBadge");
+        badge.style.display = "block";
+        badge.textContent = "🔴 LIVE — Paparan Peserta";
+        listenToLiveUpdates();
+    }
+
+    function broadcastState(payload) {
+        if (userRole !== "admin") return;
+        liveRef.set({
+            ...payload,
+            timestamp: Date.now()
+        });
+    }
+
+    /* ==============================================================
+       3. PEMBOLEHUBAH & FUNGSI ASAL SISTEM
+       ============================================================== */
     let numbers = [];
     let listVisible = true;
     let rollingInterval = null;
     let rollingTimeout = null;
-    let normalFadeTimeout = null;
-    let audioFadeFrame = null;
     let isDrawing = false;
 
     const result = document.getElementById("result");
@@ -263,13 +464,16 @@
     const winSound = document.getElementById("winSound");
 
     function loadNumbers() {
-        const raw = document.getElementById("numberInput").value.split("\n");
+        const area = document.getElementById("numberInput");
+        if (!area) return;
+        const raw = area.value.split("\n");
         numbers = raw.map(n => n.trim()).filter(n => n !== "");
     }
 
     function toggleList(forceHide = false) {
         const area = document.getElementById("numberInput");
         const btn = document.getElementById("toggleBtn");
+        if (!area || !btn) return;
 
         if (forceHide || listVisible) {
             area.style.display = "none";
@@ -285,8 +489,6 @@
     function resetEffects() {
         clearInterval(rollingInterval);
         clearTimeout(rollingTimeout);
-        clearTimeout(normalFadeTimeout);
-        cancelAnimationFrame(audioFadeFrame);
 
         result.className = "";
         grandLabel.className = "";
@@ -294,77 +496,31 @@
 
         spinSound.pause();
         spinSound.currentTime = 0;
-        spinSound.loop = false;
-        spinSound.playbackRate = 1;
-        spinSound.volume = 1;
 
         grandPrizeSound.pause();
         grandPrizeSound.currentTime = 0;
-        grandPrizeSound.loop = false;
-        grandPrizeSound.playbackRate = 1;
 
         winSound.pause();
         winSound.currentTime = 0;
-        winSound.loop = false;
-        winSound.playbackRate = 1.0;
-        winSound.defaultPlaybackRate = 1.0;
     }
 
     function playSpinSound(isGrand = false) {
         if (isGrand) {
             grandPrizeSound.pause();
             grandPrizeSound.currentTime = 0;
-            grandPrizeSound.loop = false;
             grandPrizeSound.play().catch(() => {});
         } else {
             spinSound.pause();
             spinSound.currentTime = 0;
-            spinSound.loop = false;
-            spinSound.playbackRate = 1;
-            spinSound.volume = 1;
             spinSound.play().catch(() => {});
         }
     }
 
-    /* Fade out supaya bunyi cabutan biasa tidak terpotong secara mengejut */
-    function fadeOutNormalSound(duration = 600) {
-        cancelAnimationFrame(audioFadeFrame);
-
-        const startVolume = spinSound.volume;
-        const startTime = performance.now();
-
-        function fade(currentTime) {
-            const progress = Math.min((currentTime - startTime) / duration, 1);
-            spinSound.volume = Math.max(0, startVolume * (1 - progress));
-
-            if (progress < 1) {
-                audioFadeFrame = requestAnimationFrame(fade);
-            }
-        }
-
-        audioFadeFrame = requestAnimationFrame(fade);
-    }
-
-    function stopSpinSound() {
-        cancelAnimationFrame(audioFadeFrame);
-
-        spinSound.pause();
-        spinSound.currentTime = 0;
-        spinSound.loop = false;
-        spinSound.playbackRate = 1;
-        spinSound.volume = 1;
-
-        grandPrizeSound.pause();
-        grandPrizeSound.currentTime = 0;
-        grandPrizeSound.loop = false;
-        grandPrizeSound.playbackRate = 1;
-    }
-
     /* =========================
-       NORMAL DRAW — SPACEBAR
+       NORMAL DRAW (ADMIN)
        ========================= */
     function startNormalDraw() {
-        if (isDrawing) return;
+        if (userRole !== "admin" || isDrawing) return;
 
         loadNumbers();
         toggleList(true);
@@ -380,12 +536,16 @@
 
         result.classList.add("normalRolling");
 
+        broadcastState({
+            state: "normal_rolling",
+            pool: numbers.slice(0, 50)
+        });
+
         rollingInterval = setInterval(() => {
             const randomNum = numbers[Math.floor(Math.random() * numbers.length)];
             result.textContent = randomNum;
         }, 50);
 
-        /* Rolling berhenti selepas 3 saat, tetapi audio dibiarkan habis sendiri */
         rollingTimeout = setTimeout(stopNormalRolling, 2500);
     }
 
@@ -401,15 +561,20 @@
         result.textContent = picked;
         document.getElementById("numberInput").value = numbers.join("\n");
 
+        broadcastState({
+            state: "normal_win",
+            winner: picked
+        });
+
         startFireworks(false);
         isDrawing = false;
     }
 
     /* =========================
-       GRAND PRIZE — SHIFT
+       GRAND PRIZE (ADMIN)
        ========================= */
     function startGrandDraw() {
-        if (isDrawing) return;
+        if (userRole !== "admin" || isDrawing) return;
 
         loadNumbers();
         toggleList(true);
@@ -428,6 +593,11 @@
 
         playSpinSound(true);
 
+        broadcastState({
+            state: "grand_rolling",
+            pool: numbers.slice(0, 50)
+        });
+
         let rollSpeed = 45;
         let elapsed = 0;
 
@@ -440,7 +610,6 @@
 
                 elapsed += rollSpeed;
 
-                /* Semakin hampir tamat, putaran semakin perlahan */
                 if (elapsed > 2600 && rollSpeed === 45) {
                     rollSpeed = 80;
                     dramaticRoll();
@@ -472,7 +641,6 @@
         const characters = Array.from(picked);
         let revealedCount = 0;
 
-        /* Simbol yang menutup aksara yang belum didedahkan */
         function maskedNumber() {
             return characters.map((char, i) => {
                 if (i < revealedCount) return char;
@@ -480,7 +648,13 @@
             }).join("");
         }
 
-        result.textContent = maskedNumber();
+        const initialMask = maskedNumber();
+        result.textContent = initialMask;
+
+        broadcastState({
+            state: "grand_reveal",
+            display: initialMask
+        });
 
         const revealInterval = setInterval(() => {
             revealedCount++;
@@ -489,7 +663,13 @@
             void result.offsetWidth;
             result.classList.add("grandReveal");
 
-            result.textContent = maskedNumber();
+            const currentMask = maskedNumber();
+            result.textContent = currentMask;
+
+            broadcastState({
+                state: "grand_reveal",
+                display: currentMask
+            });
 
             if (revealedCount >= characters.length) {
                 clearInterval(revealInterval);
@@ -499,24 +679,20 @@
                     result.classList.add("grandWinner");
                     result.textContent = picked;
 
-                    /* Hentikan audio Grand Prize supaya tidak bertindih */
                     grandPrizeSound.pause();
                     grandPrizeSound.currentTime = 0;
 
-                    /* Mainkan bunyi kemenangan pada kelajuan asal */
                     winSound.pause();
                     winSound.currentTime = 0;
-                    winSound.playbackRate = 1.0;
-                    winSound.defaultPlaybackRate = 1.0;
-
-                    if ("preservesPitch" in winSound) {
-                        winSound.preservesPitch = true;
-                    }
-
                     winSound.play().catch(() => {});
 
                     grandOverlay.className = "";
                     grandOverlay.classList.add("flash");
+
+                    broadcastState({
+                        state: "grand_win",
+                        winner: picked
+                    });
 
                     startFireworks(true);
 
@@ -530,8 +706,77 @@
         }, 1200);
     }
 
-    /* KEYBOARD CONTROL */
+    /* ==============================================================
+       4. PENDENGAR LIVE UNTUK SKRIN PESERTA
+       ============================================================== */
+    let lastTimestamp = 0;
+
+    function listenToLiveUpdates() {
+        liveRef.on("value", (snapshot) => {
+            const data = snapshot.val();
+            if (!data || data.timestamp === lastTimestamp) return;
+            lastTimestamp = data.timestamp;
+
+            if (data.state === "normal_rolling") {
+                resetEffects();
+                playSpinSound(false);
+                result.classList.add("normalRolling");
+                const pool = data.pool || ["..."];
+                rollingInterval = setInterval(() => {
+                    result.textContent = pool[Math.floor(Math.random() * pool.length)];
+                }, 50);
+            } 
+            else if (data.state === "normal_win") {
+                clearInterval(rollingInterval);
+                result.className = "";
+                result.textContent = data.winner;
+                startFireworks(false);
+            } 
+            else if (data.state === "grand_rolling") {
+                resetEffects();
+                grandLabel.classList.add("show");
+                grandOverlay.classList.add("active");
+                result.classList.add("grandRolling");
+                playSpinSound(true);
+                const pool = data.pool || ["..."];
+                rollingInterval = setInterval(() => {
+                    result.textContent = pool[Math.floor(Math.random() * pool.length)];
+                }, 60);
+            } 
+            else if (data.state === "grand_reveal") {
+                clearInterval(rollingInterval);
+                grandLabel.classList.add("show");
+                grandOverlay.classList.add("active");
+                result.className = "";
+                void result.offsetWidth;
+                result.classList.add("grandReveal");
+                result.textContent = data.display;
+            } 
+            else if (data.state === "grand_win") {
+                clearInterval(rollingInterval);
+                result.className = "";
+                result.classList.add("grandWinner");
+                result.textContent = data.winner;
+
+                grandPrizeSound.pause();
+                grandPrizeSound.currentTime = 0;
+                winSound.play().catch(() => {});
+
+                grandOverlay.className = "";
+                grandOverlay.classList.add("flash");
+                startFireworks(true);
+
+                setTimeout(() => {
+                    grandLabel.classList.remove("show");
+                    grandOverlay.className = "";
+                }, 6000);
+            }
+        });
+    }
+
+    /* KAWALAN PAPAN KEKUNCI (ADMIN SAHAJA) */
     document.addEventListener("keydown", function(e) {
+        if (userRole !== "admin") return;
         if (e.repeat) return;
 
         if (e.code === "Space") {
@@ -587,7 +832,6 @@
 
             if (Date.now() - startTime < duration) {
                 const launchChance = isGrand ? 0.13 : 0.05;
-
                 if (Math.random() < launchChance) {
                     fireworks.push(new Firework());
                 }
@@ -595,22 +839,17 @@
 
             for (let i = fireworks.length - 1; i >= 0; i--) {
                 const fw = fireworks[i];
-
                 if (!fw.boom) {
                     fw.y -= fw.speed;
-
                     ctx.fillStyle = isGrand ? "#ffd700" : "white";
                     ctx.fillRect(fw.x, fw.y, 4, 12);
 
                     if (fw.y <= fw.targetY) {
                         fw.boom = true;
-
                         const particleCount = isGrand ? 75 : 30;
-
                         for (let j = 0; j < particleCount; j++) {
                             particles.push(new Particle(fw.x, fw.y));
                         }
-
                         fireworks.splice(i, 1);
                     }
                 }
@@ -618,7 +857,6 @@
 
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
-
                 p.x += p.speedX;
                 p.y += p.speedY;
                 p.speedY += 0.035;
